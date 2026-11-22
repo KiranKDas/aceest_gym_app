@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-production-service
+  namespace: aceest-fitness
+  labels:
+    app: aceest-fitness
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 5000
+    protocol: TCP
+    name: http
+  selector:
+    app: aceest-fitness
+    color: blue

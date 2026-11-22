@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aceest-fitness-blue
+  namespace: aceest-fitness
+  labels:
+    app: aceest-fitness
+    environment: production
+    color: blue
+    version: "2.2.0"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aceest-fitness
+      color: blue
+  template:
+    metadata:
+      labels:
+        app: aceest-fitness
+        color: blue
+        version: "2.2.0"
+    spec:
+      containers:
+      - name: aceest-fitness
+        image: kirankdas/aceest-fitness:2.2.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5000
+        env:
+        - name: APP_VERSION
+          value: "2.2.0"
+        - name: DEPLOY_COLOR
+          value: "blue"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 5
+          periodSeconds: 5

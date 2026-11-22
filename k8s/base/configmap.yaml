@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aceest-config
+  namespace: aceest-fitness
+data:
+  APP_VERSION: "3.0.0"
+  FLASK_ENV: "production"
+  DATABASE_PATH: "/app/data/aceest_fitness.db"
+  PORT: "5000"

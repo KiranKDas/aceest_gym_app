@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aceest-experiment-ingress-b
+  namespace: aceest-fitness
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Experiment-Group"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "B"
+    nginx.ingress.kubernetes.io/canary-by-cookie: "aceest_variant_b"
+spec:
+  rules:
+  - host: fitness.aceest.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aceest-variant-b-service
+            port:
+              number: 80

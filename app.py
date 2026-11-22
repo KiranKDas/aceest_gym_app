@@ -18,6 +18,90 @@ PROGRAM_TEMPLATES = {
     "Beginner": ["Full Body 3x/week", "Light Strength + Mobility"]
 }
 
+# Core Programs Catalog for Exercise & Nutritional Regimen
+PROGRAMS_CATALOG = {
+    "Fat Loss (FL)": {
+        "workout": (
+            "Mon: Back Squat 5x5 + Core\n"
+            "Tue: EMOM 20min Assault Bike\n"
+            "Wed: Bench Press + 21-15-9\n"
+            "Thu: Deadlift + Box Jumps\n"
+            "Fri: Zone 2 Cardio 30min"
+        ),
+        "diet": (
+            "Breakfast: 3 Egg Whites + Oats Idli\n"
+            "Lunch: Grilled Chicken + Brown Rice\n"
+            "Dinner: Fish Curry + Millet Roti\n"
+            "Target: ~2,000 kcal"
+        ),
+        "calorie_factor": 22.0,
+        "color": "#e74c3c"
+    },
+    "Muscle Gain (MG)": {
+        "workout": (
+            "Mon: Squat 5x5\n"
+            "Tue: Bench 5x5\n"
+            "Wed: Deadlift 4x6\n"
+            "Thu: Front Squat 4x8\n"
+            "Fri: Incline Press 4x10\n"
+            "Sat: Barbell Rows 4x10"
+        ),
+        "diet": (
+            "Breakfast: 4 Eggs + PB Oats\n"
+            "Lunch: Chicken Biryani (250g Chicken)\n"
+            "Dinner: Mutton Curry + Rice\n"
+            "Target: ~3,200 kcal"
+        ),
+        "calorie_factor": 35.0,
+        "color": "#2ecc71"
+    },
+    "Beginner (BG)": {
+        "workout": (
+            "Circuit Training: Air Squats, Ring Rows, Push-ups\n"
+            "Focus: Form & Technique Mastery (90% Threshold)\n"
+            "Frequency: 3 Days Full-Body Routine"
+        ),
+        "diet": (
+            "Breakfast: Idli-Sambar + Boiled Sprouts\n"
+            "Lunch: Rice-Dal + Steamed Greens\n"
+            "Dinner: Chapati + Paneer Curry\n"
+            "Protein Target: 1.6g / kg (~120g/day)"
+        ),
+        "calorie_factor": 26.0,
+        "color": "#3498db"
+    }
+}
+
+
+def calculate_calories(weight_kg, program_name):
+    """Compute daily target calorie intake based on body weight and activity factor."""
+    if not weight_kg or float(weight_kg) <= 0:
+        raise ValueError("Weight must be greater than zero")
+    w = float(weight_kg)
+    factor = 25.0
+    for key, prog in PROGRAMS_CATALOG.items():
+        if key.lower().startswith(str(program_name).lower()) or str(program_name).lower() in key.lower():
+            factor = prog["calorie_factor"]
+            break
+    return int(round(w * factor))
+
+
+def calculate_bmi(weight_kg, height_cm):
+    """Compute Body Mass Index and classification category."""
+    if float(weight_kg) <= 0 or float(height_cm) <= 0:
+        raise ValueError("Weight and height must be strictly positive.")
+    h_m = float(height_cm) / 100.0
+    bmi = round(float(weight_kg) / (h_m * h_m), 2)
+    if bmi < 18.5:
+        category = "Underweight"
+    elif bmi < 24.9:
+        category = "Normal Weight"
+    elif bmi < 29.9:
+        category = "Overweight"
+    else:
+        category = "Obese"
+    return bmi, category
+
 
 def get_db_connection(db_path=None):
     """Establish connection to SQLite database with Row mapping."""
@@ -157,8 +241,65 @@ def create_app(test_config=None):
     def health():
         return jsonify({
             "status": "UP",
+            "service": "ACEest Fitness & Gym Management System",
+            "version": os.environ.get("APP_VERSION", "3.0.0"),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }), 200
+
+    @app.route("/api/version", methods=["GET"])
+    def get_version():
+        return jsonify({
+            "service": "ACEest Fitness & Gym Management API",
+            "version": os.environ.get("APP_VERSION", "3.0.0"),
+            "assignment": "Assignment 2 - DevOps CI/CD Implementation",
+            "student_id": "2025TM93130",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }), 200
+
+    @app.route("/api/programs", methods=["GET"])
+    def get_programs():
+        return jsonify({
+            "status": "success",
+            "count": len(PROGRAMS_CATALOG),
+            "programs": PROGRAMS_CATALOG
+        }), 200
+
+    @app.route("/api/calculate-calories", methods=["POST"])
+    def api_calculate_calories():
+        data = request.get_json(silent=True) or {}
+        weight = data.get("weight")
+        program = data.get("program", "Beginner (BG)")
+        if weight is None:
+            return jsonify({"error": "Weight is required in payload"}), 400
+        try:
+            target = calculate_calories(weight, program)
+            return jsonify({
+                "status": "success",
+                "weight_kg": float(weight),
+                "program": program,
+                "target_calories": target
+            }), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.route("/api/calculate-bmi", methods=["POST"])
+    def api_calculate_bmi():
+        data = request.get_json(silent=True) or {}
+        weight = data.get("weight")
+        height = data.get("height")
+        if weight is None or height is None:
+            return jsonify({"error": "Both weight (kg) and height (cm) are required"}), 400
+        try:
+            bmi_val, cat = calculate_bmi(weight, height)
+            return jsonify({
+                "status": "success",
+                "weight_kg": float(weight),
+                "height_cm": float(height),
+                "bmi": bmi_val,
+                "category": cat
+            }), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     # ------------------ Auth Endpoints ------------------
 
@@ -208,6 +349,11 @@ def create_app(test_config=None):
         weight = data.get("weight")
         program = data.get("program")
         calories = data.get("calories")
+        if calories is None and weight and program:
+            try:
+                calories = calculate_calories(weight, program)
+            except Exception:
+                calories = 2000
         target_weight = data.get("target_weight")
         target_adherence = data.get("target_adherence")
         membership_status = data.get("membership_status", "Active")

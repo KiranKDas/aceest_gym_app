@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-primary-service
+  namespace: aceest-fitness
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: aceest-fitness
+    role: primary
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aceest-shadow-service
+  namespace: aceest-fitness
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: aceest-fitness
+    role: shadow
