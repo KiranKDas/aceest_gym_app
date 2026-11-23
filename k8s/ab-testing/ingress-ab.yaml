@@ -4,7 +4,6 @@ metadata:
   name: aceest-experiment-ingress-b
   namespace: aceest-fitness
   annotations:
-    kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/canary: "true"
     nginx.ingress.kubernetes.io/canary-by-header: "X-Experiment-Group"
     nginx.ingress.kubernetes.io/canary-by-header-value: "B"
@@ -21,3 +20,32 @@ spec:
             name: aceest-variant-b-service
             port:
               number: 80
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aceest-variant-b-service
+            port:
+              number: 80
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: aceest-experiment-route
+  namespace: aceest-fitness
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: (Host(`fitness.aceest.local`) || Host(`localhost`) || Host(`10.3.18.4`)) && Headers(`X-Experiment-Group`, `B`)
+    kind: Rule
+    services:
+    - name: aceest-variant-b-service
+      port: 80
+  - match: Host(`fitness.aceest.local`) || Host(`localhost`) || Host(`10.3.18.4`)
+    kind: Rule
+    services:
+    - name: aceest-variant-a-service
+      port: 80

@@ -4,12 +4,20 @@ metadata:
   name: aceest-shadow-ingress
   namespace: aceest-fitness
   annotations:
-    kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/mirror-target: "http://aceest-shadow-service.aceest-fitness.svc.cluster.local:80"
 spec:
   rules:
   - host: fitness.aceest.local
     http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aceest-primary-service
+            port:
+              number: 80
+  - http:
       paths:
       - path: /
         pathType: Prefix
