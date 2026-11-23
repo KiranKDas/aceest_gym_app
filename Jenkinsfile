@@ -8,13 +8,11 @@
 
 pipeline {
     agent any
-
     parameters {
-        choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Target deployment environment')
-        choice(name: 'DEPLOY_STRATEGY', choices: ['rolling-update', 'blue-green', 'canary', 'shadow', 'ab-testing'], description: 'Progressive deployment strategy')
+        choice(name: 'DEPLOY_ENV', choices: ['staging', 'production'], description: 'Target environment')
+        choice(name: 'DEPLOY_STRATEGY', choices: ['rolling-update', 'blue-green', 'canary', 'shadow', 'ab-testing'], description: 'Deployment strategy')
         string(name: 'APP_VERSION', defaultValue: '3.0.0', description: 'Application release version')
     }
-
     environment {
         IMAGE_NAME = 'kirankdas/aceest_gym_app'
         IMAGE_TAG = "${params.APP_VERSION}-${BUILD_NUMBER}"
@@ -22,22 +20,19 @@ pipeline {
         K8S_NAMESPACE = 'aceest-fitness'
         KUBECONFIG = '/etc/rancher/k3s/k3s.yaml'
     }
-
     options {
         buildDiscarder(logRotator(numToKeepStr: '15', artifactNumToKeepStr: '10'))
         timeout(time: 45, unit: 'MINUTES')
         disableConcurrentBuilds()
     }
-
     stages {
         stage('SCM Checkout') {
             steps {
                 echo "==> Stage 1: Checking out code from repository..."
-                git branch: 'main', url: 'https://github.com/KiranKDas/aceest_gym_app.git'
+                checkout scm
                 sh 'git log -1 --oneline'
             }
         }
-
         stage('Dependency Setup & Linting') {
             steps {
                 echo "==> Stage 2: Setting up virtual environment & validating PEP-8..."
@@ -50,7 +45,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Unit Testing & Code Coverage') {
             steps {
                 echo "==> Stage 3: Running Pytest test automation suite..."
@@ -71,7 +65,6 @@ pipeline {
                 }
             }
         }
-
         stage('SonarQube Static Analysis') {
             steps {
                 echo "==> Stage 4: Executing SonarQube Scanner for code quality..."
@@ -95,7 +88,6 @@ pipeline {
                 '''
             }
         }
-
         stage('SonarQube Quality Gate') {
             steps {
                 echo "==> Stage 5: Evaluating Quality Gate threshold..."
@@ -104,7 +96,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Build Container Image') {
             steps {
                 echo "==> Stage 6: Packaging Flask application into Docker image..."
@@ -116,7 +107,6 @@ pipeline {
                 """
             }
         }
-
         stage('Deploy to Kubernetes Staging') {
             steps {
                 echo "==> Stage 7: Deploying to Kubernetes staging cluster..."
@@ -130,7 +120,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Automated Health Probes') {
             steps {
                 echo "==> Stage 8: Verifying application health probe..."
@@ -139,7 +128,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Production Progressive Deployment') {
             when {
                 expression { return params.DEPLOY_ENV == 'production' }
@@ -167,7 +155,6 @@ pipeline {
             }
         }
     }
-
     post {
         always {
             echo "Pipeline complete. Cleaning workspace..."
